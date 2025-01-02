@@ -43,7 +43,7 @@ export const createAccount = async (data) => {
     // find existing accounts to check whether user is creating their first account or having more accounts
     const existingAccounts = await db.account.findMany({
       where: {
-        userId,
+        userId: user.id,
       },
     });
 
@@ -55,7 +55,7 @@ export const createAccount = async (data) => {
     if (shouldBeDefault) {
       await db.account.updateMany({
         where: {
-          userId,
+          userId: user.id,
           isDefault: true,
         },
         data: {
@@ -69,7 +69,7 @@ export const createAccount = async (data) => {
       data: {
         ...data,
         balance: balanceFloat,
-        userId,
+        userId: user.id,
         isDefault: shouldBeDefault,
       },
     });
