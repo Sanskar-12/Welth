@@ -59,7 +59,7 @@ const CreateAccountDrawer = ({ children }) => {
   };
 
   useEffect(() => {
-    if (createAccountData) {
+    if (createAccountData?.success) {
       toast.success("Account Created Successfully");
       reset();
       setOpen(false);
