@@ -27,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { Checkbox } from "./ui/checkbox";
 import { format } from "date-fns";
 import { categoryColors } from "@/data/categories";
@@ -44,7 +43,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Input } from "./ui/input";
 
 const RECURRINGINTERVALS = {
@@ -65,7 +64,58 @@ const TransactionTable = ({ transactions }) => {
   const [typeFilter, setTypeFilter] = useState("");
   const [recurringFilter, setRecurringFilter] = useState("");
 
-  const filteredAndSortedTransactions = transactions;
+  const filteredAndSortedTransactions = useMemo(() => {
+    let result = [...transactions];
+
+    // apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      result = result.filter((transaction) =>
+        transaction.description?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // apply recurring filter
+    if (recurringFilter) {
+      result = result.filter((transaction) => {
+        if (recurringFilter === "recurring") {
+          return transaction.isRecurring;
+        }
+        return !transaction.isRecurring;
+      });
+    }
+
+    // apply type filter
+    if (typeFilter) {
+      result = result.filter((transaction) => transaction.type === typeFilter);
+    }
+
+    // apply sorting filter
+    result.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortConfig.field) {
+        case "date":
+          comparison = new Date(a.date) - new Date(b.date);
+          break;
+
+        case "amount":
+          comparison = a.amount - b.amount;
+          break;
+
+        case "category":
+          comparison = a.category.localeCompare(b.category);
+          break;
+
+        default:
+          comparison = 0;
+      }
+
+      return sortConfig.direction === "asc" ? comparison : -comparison;
+    });
+
+    return result;
+  }, [transactions, searchTerm, typeFilter, recurringFilter, sortConfig]);
 
   const handleSort = (field) => {
     setSortConfig((current) => ({
