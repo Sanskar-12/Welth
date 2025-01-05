@@ -33,6 +33,8 @@ import { categoryColors } from "@/data/categories";
 import { Badge } from "./ui/badge";
 import {
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Clock,
   MoreHorizontal,
@@ -48,6 +50,7 @@ import { Input } from "./ui/input";
 import { useFetchData } from "@/hooks/use-fetch";
 import { bulkDeleteTransactions } from "@/actions/account";
 import { toast } from "sonner";
+import { BarLoader } from "react-spinners";
 
 const RECURRINGINTERVALS = {
   DAILY: "Daily",
@@ -55,6 +58,8 @@ const RECURRINGINTERVALS = {
   MONTHLY: "Monthly",
   YEARLY: "Yearly",
 };
+
+const LIMIT = 10;
 
 const TransactionTable = ({ transactions }) => {
   const router = useRouter();
@@ -66,8 +71,9 @@ const TransactionTable = ({ transactions }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [recurringFilter, setRecurringFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const filteredAndSortedTransactions = useMemo(() => {
+  let filteredAndSortedTransactions = useMemo(() => {
     let result = [...transactions];
 
     // apply search filter
@@ -120,6 +126,17 @@ const TransactionTable = ({ transactions }) => {
     return result;
   }, [transactions, searchTerm, typeFilter, recurringFilter, sortConfig]);
 
+  const totalPages = Math.ceil(filteredAndSortedTransactions.length / LIMIT);
+
+  const paginatedTransactions = useMemo(() => {
+    const startIndex = (currentPage - 1) * LIMIT;
+    filteredAndSortedTransactions = filteredAndSortedTransactions.slice(
+      startIndex,
+      startIndex + LIMIT
+    );
+    return filteredAndSortedTransactions;
+  }, [filteredAndSortedTransactions, currentPage]);
+
   const {
     data: bulkDeleteData,
     loading: bulkDeleteLoading,
@@ -136,6 +153,11 @@ const TransactionTable = ({ transactions }) => {
     }
 
     await bulkDeleteTransactionsFn(selectedIds);
+    setSelectedIds([]);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
     setSelectedIds([]);
   };
 
@@ -180,6 +202,9 @@ const TransactionTable = ({ transactions }) => {
 
   return (
     <div className="space-y-4">
+      {bulkDeleteLoading && (
+        <BarLoader className="mt-4" width={"100%"} color="#9333ea" />
+      )}
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -306,7 +331,7 @@ const TransactionTable = ({ transactions }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAndSortedTransactions.length === 0 ? (
+            {paginatedTransactions.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={7}
@@ -316,7 +341,7 @@ const TransactionTable = ({ transactions }) => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredAndSortedTransactions.map((transaction) => (
+              paginatedTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell>
                     <Checkbox
@@ -416,6 +441,29 @@ const TransactionTable = ({ transactions }) => {
           </TableBody>
         </Table>
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
