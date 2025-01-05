@@ -118,3 +118,72 @@ export const getAccountWithTransactions = async (accountId) => {
     throw new Error(error.message);
   }
 };
+
+export const bulkDeleteTransactions = async (transactionIds) => {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await db.user.findUnique({
+      where: { clerkUserId: userId },
+    });
+
+    if (!user) throw new Error("User not found");
+
+    // Get transactions to calculate balance changes
+    const transactions = await db.transaction.findMany({
+      where: {
+        id: { in: transactionIds },
+        userId: user.id,
+      },
+    });
+
+    if (!transactions || transactions.length === 0) {
+      throw new Error("No transactions found for the provided IDs.");
+    }
+
+    // Group transactions by account to update balances
+    const accountBalanceChanges = transactions.reduce((acc, transaction) => {
+      const change =
+        transaction.type === "EXPENSE"
+          ? Number(transaction.amount)
+          : -Number(transaction.amount);
+
+      acc[transaction.accountId] = (acc[transaction.accountId] || 0) + change;
+      return acc;
+    }, {});
+
+    // Delete transactions and update account balances in a transaction
+    await db.$transaction(async (tx) => {
+      // Delete transactions
+      await tx.transaction.deleteMany({
+        where: {
+          id: { in: transactionIds },
+          userId: user.id,
+        },
+      });
+
+      // Update account balances
+      for (const [accountId, balanceChange] of Object.entries(
+        accountBalanceChanges
+      )) {
+        await tx.account.update({
+          where: { id: accountId },
+          data: {
+            balance: {
+              increment: balanceChange,
+            },
+          },
+        });
+      }
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/account/[id]", "page");
+
+    return { success: true };
+  } catch (error) {
+    console.log(error, "DELETE-TRANSACTIONS-AND-UPDATE-ACCOUNT-BALANCE-ERROR");
+    throw new Error(error.message);
+  }
+};

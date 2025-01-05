@@ -43,8 +43,11 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "./ui/input";
+import { useFetchData } from "@/hooks/use-fetch";
+import { bulkDeleteTransactions } from "@/actions/account";
+import { toast } from "sonner";
 
 const RECURRINGINTERVALS = {
   DAILY: "Daily",
@@ -117,6 +120,25 @@ const TransactionTable = ({ transactions }) => {
     return result;
   }, [transactions, searchTerm, typeFilter, recurringFilter, sortConfig]);
 
+  const {
+    data: bulkDeleteData,
+    loading: bulkDeleteLoading,
+    fn: bulkDeleteTransactionsFn,
+  } = useFetchData(bulkDeleteTransactions);
+
+  const handleBulkDelete = async (selectedIds) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${selectedIds.length} transactions ? `
+      )
+    ) {
+      return;
+    }
+
+    await bulkDeleteTransactionsFn(selectedIds);
+    setSelectedIds([]);
+  };
+
   const handleSort = (field) => {
     setSortConfig((current) => ({
       field,
@@ -143,14 +165,18 @@ const TransactionTable = ({ transactions }) => {
     );
   };
 
-  const handleBulkDelete = () => {};
-
   const handleClearFilters = () => {
     setSearchTerm("");
     setTypeFilter("");
     setRecurringFilter("");
     setSelectedIds([]);
   };
+
+  useEffect(() => {
+    if (bulkDeleteData && !bulkDeleteLoading) {
+      toast.success("Transactions Deleted Successfully");
+    }
+  }, [bulkDeleteData, bulkDeleteLoading]);
 
   return (
     <div className="space-y-4">
@@ -198,7 +224,7 @@ const TransactionTable = ({ transactions }) => {
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={handleBulkDelete}
+                onClick={() => handleBulkDelete(selectedIds)}
               >
                 <TrashIcon className="h-4 w-4 mr-2" />
                 Delete Selected ({selectedIds.length})
@@ -375,7 +401,10 @@ const TransactionTable = ({ transactions }) => {
                         >
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleBulkDelete([transaction.id])}
+                        >
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
