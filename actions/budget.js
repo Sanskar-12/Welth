@@ -107,6 +107,7 @@ export const updateBudget = async (amount) => {
     });
 
     revalidatePath("/dashboard");
+
     return {
       success: true,
       data: {
@@ -115,6 +116,10 @@ export const updateBudget = async (amount) => {
       },
     };
   } catch (error) {
+    if (error instanceof Error) {
+      console.log(error.stack);
+      console.error("UPDATE-BUDGET-ERROR", error);
+    }
     console.log(error, "UPDATE-BUDGET-ERROR");
     throw new Error(error.message);
   }

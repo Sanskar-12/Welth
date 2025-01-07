@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Check, Pencil, X } from "lucide-react";
@@ -12,6 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useFetchData } from "@/hooks/use-fetch";
+import { updateBudget } from "@/actions/budget";
+import { toast } from "sonner";
+import { Progress } from "./ui/progress";
 
 const BudgetProgress = ({ initialBudget, currentExpenses }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -23,12 +27,41 @@ const BudgetProgress = ({ initialBudget, currentExpenses }) => {
     ? (currentExpenses / initialBudget.amount) * 100
     : 0;
 
-  const budgetUpdateHandler = () => {};
+  const {
+    data: updateBudgetData,
+    loading: updateBudgetLoading,
+    fn: updateBudgetFn,
+    error,
+  } = useFetchData(updateBudget);
+
+  const budgetUpdateHandler = async () => {
+    const amount = parseFloat(newBudget);
+
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    await updateBudgetFn(amount);
+  };
 
   const budgetCancelHandler = () => {
     setNewBudget(initialBudget?.amount?.toString() || "");
     setIsEditing(false);
   };
+
+  useEffect(() => {
+    if (updateBudgetData?.success) {
+      toast.success("Budget Created Successfully");
+      setIsEditing(false);
+    }
+  }, [updateBudgetData]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error.message || "Failed to create budget");
+    }
+  }, [error]);
 
   return (
     <Card>
@@ -45,11 +78,13 @@ const BudgetProgress = ({ initialBudget, currentExpenses }) => {
                   type="number"
                   className="w-32"
                   autoFocus
+                  disabled={updateBudgetLoading}
                 />
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={budgetUpdateHandler}
+                  disabled={updateBudgetLoading}
                 >
                   <Check className="h-4 w-4 text-green-500" />
                 </Button>
@@ -57,6 +92,7 @@ const BudgetProgress = ({ initialBudget, currentExpenses }) => {
                   variant="ghost"
                   size="icon"
                   onClick={budgetCancelHandler}
+                  disabled={updateBudgetLoading}
                 >
                   <X className="h-4 w-4 text-red-500" />
                 </Button>
@@ -84,11 +120,25 @@ const BudgetProgress = ({ initialBudget, currentExpenses }) => {
         </div>
       </CardHeader>
       <CardContent>
-        <p>Card Content</p>
+        {initialBudget && (
+          <div className="space-y-2">
+            <Progress
+              value={percentageUsed}
+              extraStyles={`${
+                percentageUsed >= 90
+                  ? "bg-red-500"
+                  : percentageUsed >= 75
+                  ? "bg-yellow-500"
+                  : "bg-green-500"
+              }
+              `}
+            />
+            <p className="text-xs text-muted-foreground text-right">
+              {percentageUsed.toFixed(1)}% used
+            </p>
+          </div>
+        )}
       </CardContent>
-      <CardFooter>
-        <p>Card Footer</p>
-      </CardFooter>
     </Card>
   );
 };

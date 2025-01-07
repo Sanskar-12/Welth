@@ -28,7 +28,7 @@ model Budget {
   amount        Decimal
   lastAlertSent DateTime? // Track when last alert was sent
   user          User      @relation(references: [id], fields: [userId], onDelete: Cascade)
-  userId        String
+  userId        String    @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
