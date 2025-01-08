@@ -14,11 +14,7 @@ import {
 export function EmailTemplate({
   userName = "",
   type = "monthly-report",
-  data = {
-    percentageUsed: 85,
-    budgetAmount: 4000,
-    totalExpenses: 3400,
-  },
+  data = {},
 }) {
   if (type === "monthly-report") {
   }
