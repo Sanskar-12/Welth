@@ -17,6 +17,7 @@ const serializeTransaction = (obj) => {
 
 export const createAccount = async (data) => {
   try {
+    console.log(data);
     const { userId } = await auth();
 
     if (!userId) {

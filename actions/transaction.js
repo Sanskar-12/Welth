@@ -60,7 +60,7 @@ export const createTransaction = async (data) => {
     // finding the account
     const account = await db.account.findUnique({
       where: {
-        accountId: data.accountId,
+        id: data.accountId,
         userId: user.id,
       },
     });
@@ -89,9 +89,9 @@ export const createTransaction = async (data) => {
       await tx.account.update({
         where: {
           id: account.id,
-          data: {
-            balance: newBalance,
-          },
+        },
+        data: {
+          balance: newBalance,
         },
       });
 
@@ -106,7 +106,7 @@ export const createTransaction = async (data) => {
       data: serializeTransaction(transaction),
     };
   } catch (error) {
-    console.log(error, "CREATE-TRANSACTION-ERROR");
+    console.log(error.stack, "CREATE-TRANSACTION-ERROR");
     throw new Error(error.message);
   }
 };

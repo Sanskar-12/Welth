@@ -184,11 +184,7 @@ const AccountChart = ({ transactions }) => {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <p>Card Content</p>
       </CardContent>
-      <CardFooter>
-        <p>Card Footer</p>
-      </CardFooter>
     </Card>
   );
 };
