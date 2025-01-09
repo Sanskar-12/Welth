@@ -1,6 +1,8 @@
 "use server";
 
+import aj from "@/lib/arcjet/client";
 import { db } from "@/lib/prisma";
+import { request } from "@arcjet/next";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -46,6 +48,30 @@ export const createTransaction = async (data) => {
     }
 
     // Rate Limiting for create Transaction Api using ArcJet
+    const req = await request();
+
+    // Check rate limit
+    const descision = await aj.protect(req, {
+      userId,
+      requested: 1, // with every request how many token should be consumed
+    });
+
+    if (descision.isDenied()) {
+      // if the reason is rate limiting then give error
+      if (descision.reason.isRateLimit()) {
+        const { remaining, reset } = descision.reason;
+        console.error({
+          code: "RATE_LIMIT_EXCEEDED",
+          details: {
+            remaining,
+            resetInSeconds: reset,
+          },
+        });
+
+        throw new Error("Too many requests. Please try again later.");
+      }
+      throw new Error("Request blocked");
+    }
 
     const user = await db.user.findUnique({
       where: {
