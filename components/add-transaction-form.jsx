@@ -27,6 +27,7 @@ import { Switch } from "./ui/switch";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import AIReceiptScanner from "./ai-receipt-scanner";
 
 const AddTransactionForm = ({ accounts, categories }) => {
   const router = useRouter();
@@ -72,6 +73,8 @@ const AddTransactionForm = ({ accounts, categories }) => {
 
   const date = watch("date");
 
+  const onScanComplete = () => {};
+
   useEffect(() => {
     if (createTransactionData?.success && !createTransactionDataLoading) {
       toast.success("Transaction created Successfully");
@@ -89,6 +92,7 @@ const AddTransactionForm = ({ accounts, categories }) => {
   return (
     <form className="space-y-6" onSubmit={handleSubmit(submitHandler)}>
       {/* AI Receipt Scanner */}
+      <AIReceiptScanner onScanComplete={onScanComplete} />
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Type</label>
