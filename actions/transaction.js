@@ -4,6 +4,7 @@ import aj from "@/lib/arcjet/client";
 import { db } from "@/lib/prisma";
 import { request } from "@arcjet/next";
 import { auth } from "@clerk/nextjs/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { revalidatePath } from "next/cache";
 
 const serializeTransaction = (obj) => {
@@ -134,5 +135,61 @@ export const createTransaction = async (data) => {
   } catch (error) {
     console.log(error.stack, "CREATE-TRANSACTION-ERROR");
     throw new Error(error.message);
+  }
+};
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Ai Receipt Scanner Api
+export const scanReceipt = async (file) => {
+  try {
+    // specify the AI model
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+    });
+
+    // Convert the file into ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+
+    // Convert the array buffer into base64
+    const base64String = Buffer.from(arrayBuffer).toString("base64");
+
+    // give the prompt to the AI
+    const prompt = ``;
+
+    // construct the response by giving the file and prompt
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          data: base64String,
+          mimeType: file.type,
+        },
+      },
+      prompt,
+    ]);
+
+    const response = await result.response();
+
+    const text = response.text();
+
+    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
+
+    try {
+      const data = JSON.parse(cleanedText);
+
+      return {
+        amount: parseFloat(data.amount),
+        date: new Date(data.date),
+        description: data.description,
+        category: data.category,
+        merchantName: data.merchantName,
+      };
+    } catch (error) {
+      console.error("Error parsing JSON response:", parseError);
+      throw new Error("Invalid response format from Gemini");
+    }
+  } catch (error) {
+    console.error("Error scanning receipt:", error);
+    throw new Error("Failed to scan receipt");
   }
 };
