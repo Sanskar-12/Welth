@@ -73,7 +73,9 @@ const AddTransactionForm = ({ accounts, categories }) => {
 
   const date = watch("date");
 
-  const onScanComplete = () => {};
+  const onScanComplete = (scannedData) => {
+    console.log(scannedData);
+  };
 
   useEffect(() => {
     if (createTransactionData?.success && !createTransactionDataLoading) {
