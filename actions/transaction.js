@@ -289,7 +289,11 @@ export const updateTransaction = async (id, data) => {
 
     // update the transaction and update the account balance at the same time
     const transaction = await db.$transaction(async (tx) => {
-      const updateTransaction = await tx.transaction.create({
+      const updateTransaction = await tx.transaction.update({
+        where: {
+          id,
+          userId: user.id,
+        },
         data: {
           ...data,
           userId: user.id,
@@ -302,7 +306,7 @@ export const updateTransaction = async (id, data) => {
 
       await tx.account.update({
         where: {
-          id: account.id,
+          id: originalTransaction.accountId,
         },
         data: {
           balance: {
@@ -317,9 +321,9 @@ export const updateTransaction = async (id, data) => {
     revalidatePath("/dashboard");
     revalidatePath(`/account/${data.accountId}`);
 
-    return { success: true, data: serializeAmount(transaction) };
+    return { success: true, data: serializeTransaction(transaction) };
   } catch (error) {
-    console.log(error, "UPDATE-TRANSACTION-ERROR");
+    console.log(error.stack, "UPDATE-TRANSACTION-ERROR");
     throw new Error(error.message);
   }
 };

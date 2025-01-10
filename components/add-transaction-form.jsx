@@ -1,6 +1,6 @@
 "use client";
 
-import { createTransaction } from "@/actions/transaction";
+import { createTransaction, updateTransaction } from "@/actions/transaction";
 import { useFetchData } from "@/hooks/use-fetch";
 import { transactionSchema } from "@/lib/zod-schema/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,16 +21,24 @@ import { Input } from "./ui/input";
 import CreateAccountDrawer from "./create-account-drawer";
 import { Button } from "./ui/button";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "./ui/calendar";
 import { Switch } from "./ui/switch";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import AIReceiptScanner from "./ai-receipt-scanner";
 
-const AddTransactionForm = ({ accounts, categories }) => {
+const AddTransactionForm = ({
+  accounts,
+  categories,
+  initialData,
+  editMode,
+}) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const editId = searchParams.get("edit");
 
   const {
     register,
@@ -42,14 +50,28 @@ const AddTransactionForm = ({ accounts, categories }) => {
     getValues,
   } = useForm({
     resolver: zodResolver(transactionSchema),
-    defaultValues: {
-      type: "EXPENSE",
-      amount: "",
-      description: "",
-      accountId: accounts?.find((account) => account.isDefault?.id),
-      date: new Date(),
-      isRecurring: false,
-    },
+    defaultValues:
+      editMode && initialData
+        ? {
+            type: initialData.type,
+            amount: initialData.amount.toString(),
+            description: initialData.description,
+            accountId: initialData.accountId,
+            category: initialData.category,
+            date: new Date(initialData.date),
+            isRecurring: initialData.isRecurring,
+            ...(initialData.recurringInterval && {
+              recurringInterval: initialData.recurringInterval,
+            }),
+          }
+        : {
+            type: "EXPENSE",
+            amount: "",
+            description: "",
+            accountId: accounts?.find((account) => account.isDefault?.id),
+            date: new Date(),
+            isRecurring: false,
+          },
   });
 
   const {
@@ -57,7 +79,7 @@ const AddTransactionForm = ({ accounts, categories }) => {
     loading: createTransactionDataLoading,
     error,
     fn: createTransactionFn,
-  } = useFetchData(createTransaction);
+  } = useFetchData(editMode ? updateTransaction : createTransaction);
 
   const filteredCategories = categories.filter(
     (category) => category.type === watch("type")
@@ -68,13 +90,17 @@ const AddTransactionForm = ({ accounts, categories }) => {
       ...data,
       amount: parseFloat(data.amount),
     };
-    await createTransactionFn(formData);
+
+    if (editMode) {
+      await createTransactionFn(editId, formData);
+    } else {
+      await createTransactionFn(formData);
+    }
   };
 
   const date = watch("date");
 
   const onScanComplete = (scannedData) => {
-    console.log(scannedData);
     if (scannedData) {
       setValue("amount", scannedData.amount.toString());
       setValue("date", new Date(scannedData.date));
@@ -89,22 +115,30 @@ const AddTransactionForm = ({ accounts, categories }) => {
 
   useEffect(() => {
     if (createTransactionData?.success && !createTransactionDataLoading) {
-      toast.success("Transaction created Successfully");
+      toast.success(
+        editMode
+          ? "Transaction updated Successfully"
+          : "Transaction created Successfully"
+      );
       reset();
       router.push(`/account/${createTransactionData.data.accountId}`);
     }
-  }, [createTransactionData, createTransactionDataLoading]);
+  }, [createTransactionData, createTransactionDataLoading, editMode]);
 
   useEffect(() => {
     if (error) {
-      toast.error(error.message || "Failed to create transaction");
+      toast.error(
+        error.message || editMode
+          ? "Failed to update transaction"
+          : "Failed to create transaction"
+      );
     }
-  }, [error]);
+  }, [error, editMode]);
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit(submitHandler)}>
       {/* AI Receipt Scanner */}
-      <AIReceiptScanner onScanComplete={onScanComplete} />
+      {!editMode && <AIReceiptScanner onScanComplete={onScanComplete} />}
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Type</label>
@@ -283,7 +317,16 @@ const AddTransactionForm = ({ accounts, categories }) => {
           className="w-full"
           disabled={createTransactionDataLoading}
         >
-          Create Transaction
+          {createTransactionDataLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {editMode ? "Updating..." : "Creating..."}
+            </>
+          ) : editMode ? (
+            "Update Transaction"
+          ) : (
+            "Create Transaction"
+          )}
         </Button>
       </div>
     </form>
