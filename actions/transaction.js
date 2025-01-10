@@ -155,7 +155,24 @@ export const scanReceipt = async (file) => {
     const base64String = Buffer.from(arrayBuffer).toString("base64");
 
     // give the prompt to the AI
-    const prompt = ``;
+    const prompt = `
+       Analyze this receipt image and extract the following information in JSON format:
+      - Total amount (just the number)
+      - Date (in ISO format)
+      - Description or items purchased (brief summary)
+      - Merchant/store name
+      - Suggested category (one of: housing,transportation,groceries,utilities,entertainment,food,shopping,healthcare,education,personal,travel,insurance,gifts,bills,other-expense )
+      
+      Only respond with valid JSON in this exact format:
+      {
+        "amount": number,
+        "date": "ISO date string",
+        "description": "string",
+        "merchantName": "string",
+        "category": "string"
+      }
+
+      If its not a recipt, return an empty object`;
 
     // construct the response by giving the file and prompt
     const result = await model.generateContent([
