@@ -156,7 +156,9 @@ export const getDashboardData = async () => {
     }
 
     const transactions = await db.transaction.findMany({
-      userId: user.id,
+      where: {
+        userId: user.id,
+      },
       orderBy: {
         date: "desc",
       },
