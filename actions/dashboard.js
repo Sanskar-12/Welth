@@ -136,3 +136,38 @@ export const getUserAccounts = async () => {
     throw new Error(error.message);
   }
 };
+
+export const getDashboardData = async () => {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      throw new Error("Unauthorised");
+    }
+
+    const user = await db.user.findUnique({
+      where: {
+        clerkUserId: userId,
+      },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const transactions = await db.transaction.findMany({
+      userId: user.id,
+      orderBy: {
+        date: "desc",
+      },
+    });
+
+    return {
+      success: true,
+      data: transactions.map(serializeTransaction),
+    };
+  } catch (error) {
+    console.log(error, "GET-DASHBOARD-DATA-ERROR");
+    throw new Error(error.message);
+  }
+};
