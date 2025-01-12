@@ -16,6 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 
 const DashboardOverview = ({ accounts, transactions }) => {
   const [selectedAccountId, setSelectedAccountId] = useState(
@@ -55,11 +58,46 @@ const DashboardOverview = ({ accounts, transactions }) => {
           </Select>
         </CardHeader>
         <CardContent>
-          <p>Card Content</p>
+          <div>
+            {recentTransactions.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">
+                No recent transactions
+              </p>
+            ) : (
+              recentTransactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between"
+                >
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {transaction.description || "Untitled Transactions"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(transaction.date), "PP")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "flex items-center",
+                        transaction.type === "EXPENSE"
+                          ? "text-red-500"
+                          : "text-green-500"
+                      )}
+                    >
+                      {transaction.type === "EXPENSE" ? (
+                        <ArrowDownRight className="mr-1 h-4 w-4" />
+                      ) : (
+                        <ArrowUpRight className="mr-1 h-4 w-4" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
-        <CardFooter>
-          <p>Card Footer</p>
-        </CardFooter>
       </Card>
 
       <Card>
