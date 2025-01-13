@@ -19,6 +19,24 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import {
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
+
+const COLORS = [
+  "#FF6B6B",
+  "#4ECDC4",
+  "#45B7D1",
+  "#96CEB4",
+  "#FFEEAD",
+  "#D4A5A5",
+  "#9FA8DA",
+];
 
 const DashboardOverview = ({ accounts, transactions }) => {
   const [selectedAccountId, setSelectedAccountId] = useState(
@@ -32,6 +50,35 @@ const DashboardOverview = ({ accounts, transactions }) => {
   const recentTransactions = accountTransactions
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 5);
+
+  const currentDate = new Date();
+  const currentMonthExpense = accountTransactions.filter((transaction) => {
+    const transactionDate = new Date(transaction.date);
+    return (
+      transaction.type === "EXPENSE" &&
+      transactionDate.getMonth() === currentDate.getMonth() &&
+      transactionDate.getFullYear() === currentDate.getFullYear()
+    );
+  });
+
+  const expenseByCategory = currentMonthExpense.reduce((acc, transaction) => {
+    const category = transaction.category;
+
+    if (!acc[category]) {
+      acc[category] = 0;
+    }
+    acc[category] = acc[category] + transaction.amount;
+    return acc;
+  }, {});
+
+  const pieChartData = Object.entries(expenseByCategory).map(
+    ([category, amount]) => ({
+      name: category,
+      value: amount,
+    })
+  );
+
+  console.log(pieChartData);
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -58,7 +105,7 @@ const DashboardOverview = ({ accounts, transactions }) => {
           </Select>
         </CardHeader>
         <CardContent>
-          <div>
+          <div className="space-y-4">
             {recentTransactions.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">
                 No recent transactions
@@ -91,6 +138,7 @@ const DashboardOverview = ({ accounts, transactions }) => {
                       ) : (
                         <ArrowUpRight className="mr-1 h-4 w-4" />
                       )}
+                      {transaction.amount.toFixed(2)}
                     </div>
                   </div>
                 </div>
@@ -102,15 +150,49 @@ const DashboardOverview = ({ accounts, transactions }) => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Card Title</CardTitle>
-          <CardDescription>Card Description</CardDescription>
+          <CardTitle className="text-base font-normal">
+            Monthly Expense Breakdown
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p>Card Content</p>
+        <CardContent className="p-0 pb-5">
+          {pieChartData.length === 0 ? (
+            <p className="text-center text-muted-foreground py-4">
+              No expenses this month
+            </p>
+          ) : (
+            <div className="h-[300px]">
+              <ResponsiveContainer width={"100%"} height={"100%"}>
+                <PieChart>
+                  <Pie
+                    data={pieChartData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey={"value"}
+                    label={({ name, value }) => `${name}: ₹${value.toFixed(2)}`}
+                  >
+                    {pieChartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => `₹${value.toFixed(2)}`}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "var(--radius)",
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </CardContent>
-        <CardFooter>
-          <p>Card Footer</p>
-        </CardFooter>
       </Card>
     </div>
   );
